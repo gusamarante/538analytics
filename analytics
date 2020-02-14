@@ -1,0 +1,36 @@
+import pandas as pd
+
+# get raw data
+df_delegates = pd.read_excel(r'G:\Gustavo Amarante\fivethirtyeight\primarydata.xlsx', index_col=0)
+df_polls = pd.read_csv(r'https://projects.fivethirtyeight.com/2020-primary-data/pres_primary_avgs_2020.csv')
+
+# =====================
+# ===== DELEGATES =====
+# =====================
+df_delegates = pd.pivot_table(df_delegates, 'delegates', ['datetime', 'state'], 'candidate')
+df_delegates = df_delegates.unstack(level=1).resample('D').last().stack(level=-1)
+
+# =================
+# ===== POLLS =====
+# =================
+candidates = {'Bernard Sanders': 'Sanders',
+              'Michael Bloomberg': 'Bloomberg',
+              'Joseph R. Biden Jr.': 'Biden',
+              'Pete Buttigieg': 'Buttigieg',
+              'Elizabeth Warren': 'Warren',
+              'Amy Klobuchar': 'Klobuchar'}
+
+cond01 = df_polls['race'] == '2020D'
+cond02 = df_polls['candidate_name'].isin(candidates.keys())
+df_polls = df_polls[cond01 & cond02]
+
+df_polls = df_polls.drop(['race', 'timestamp'], axis=1)
+
+df_polls['modeldate'] = pd.to_datetime(df_polls['modeldate'])
+df_polls['contestdate'] = pd.to_datetime(df_polls['contestdate'])
+df_polls['candidate_name'] = df_polls['candidate_name'].replace(candidates)
+
+# df_polls = pd.pivot_table(df_polls, 'pct_estimate', ['modeldate', 'state'], 'candidate_name')
+df_polls = pd.pivot_table(df_polls, 'pct_trend_adjusted', ['modeldate', 'state'], 'candidate_name')
+
+df_polls = df_polls.unstack(level=1).resample('D').last().stack(level=-1)
