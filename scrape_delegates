@@ -1,0 +1,151 @@
+from tqdm import tqdm
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+
+response = requests.get(r'https://projects.fivethirtyeight.com/2020-primary-forecast/')
+soup = BeautifulSoup(response.text, 'html.parser')
+
+candidates = ['Sanders', 'Bloomberg', 'Biden', 'Buttigieg', 'Warren', 'Klobuchar']
+today = pd.to_datetime('today')
+
+contest_date = {'Alabama': '2020-03-03',
+                'Alaska': '2020-04-04',
+                'American Samoa': '2020-03-03',
+                'Arizona': '2020-03-17',
+                'Arkansas': '2020-03-03',
+                'California': '2020-03-03',
+                'Colorado': '2020-03-03',
+                'Connecticut': '2020-04-28',
+                'Delaware': '2020-04-28',
+                'Democrats Abroad': '2020-03-10',
+                'District of Columbia': '2020-06-02',
+                'Florida': '2020-03-17',
+                'Georgia': '2020-03-24',
+                'Guam': '2020-05-02',
+                'Hawaii': '2020-04-04',
+                'Idaho': '2020-03-10',
+                'Illinois': '2020-03-17',
+                'Indiana': '2020-05-05',
+                'Iowa': '2020-02-03',
+                'Kansas': '2020-05-02',
+                'Kentucky': '2020-05-19',
+                'Louisiana': '2020-04-04',
+                'Maine': '2020-03-03',
+                'Maryland': '2020-04-28',
+                'Massachusetts': '2020-03-03',
+                'Michigan': '2020-03-10',
+                'Minnesota': '2020-03-03',
+                'Mississippi': '2020-03-10',
+                'Missouri': '2020-03-10',
+                'Montana': '2020-06-02',
+                'Nebraska': '2020-05-12',
+                'Nevada': '2020-02-22',
+                'New Hampshire': '2020-02-11',
+                'New Jersey': '2020-06-02',
+                'New Mexico': '2020-06-02',
+                'New York': '2020-04-28',
+                'North Carolina': '2020-03-03',
+                'North Dakota': '2020-03-10',
+                'Northern Marianas': '2020-04-14',
+                'Ohio': '2020-03-17',
+                'Oklahoma': '2020-03-03',
+                'Oregon': '2020-05-19',
+                'Pennsylvania': '2020-04-28',
+                'Puerto Rico': '2020-03-29',
+                'Rhode Island': '2020-04-28',
+                'South Carolina': '2020-02-29',
+                'South Dakota': '2020-06-02',
+                'Tennessee': '2020-03-03',
+                'Texas': '2020-03-03',
+                'Utah': '2020-03-03',
+                'Vermont': '2020-03-03',
+                'Virgin Islands': '2020-06-06',
+                'Virginia': '2020-03-03',
+                'Washington': '2020-03-10',
+                'West Virginia': '2020-05-12',
+                'Wisconsin': '2020-04-07',
+                'Wyoming': '2020-04-04'}
+
+delegates_number = {'Alabama': 52,
+                    'Alaska': 15,
+                    'American Samoa': 6,
+                    'Arizona': 67,
+                    'Arkansas': 31,
+                    'California': 415,
+                    'Colorado': 67,
+                    'Connecticut': 60,
+                    'Delaware': 21,
+                    'Democrats Abroad': 13,
+                    'District of Columbia': 20,
+                    'Florida': 219,
+                    'Georgia': 105,
+                    'Guam': 7,
+                    'Hawaii': 24,
+                    'Idaho': 20,
+                    'Illinois': 155,
+                    'Indiana': 82,
+                    'Iowa': 41,
+                    'Kansas': 39,
+                    'Kentucky': 54,
+                    'Louisiana': 54,
+                    'Maine': 24,
+                    'Maryland': 96,
+                    'Massachusetts': 91,
+                    'Michigan': 125,
+                    'Minnesota': 75,
+                    'Mississippi': 36,
+                    'Missouri': 68,
+                    'Montana': 19,
+                    'Nebraska': 29,
+                    'Nevada': 36,
+                    'New Hampshire': 24,
+                    'New Jersey': 126,
+                    'New Mexico': 34,
+                    'New York': 274,
+                    'North Carolina': 110,
+                    'North Dakota': 14,
+                    'Northern Marianas': 6,
+                    'Ohio': 136,
+                    'Oklahoma': 37,
+                    'Oregon': 61,
+                    'Pennsylvania': 186,
+                    'Puerto Rico': 51,
+                    'Rhode Island': 26,
+                    'South Carolina': 54,
+                    'South Dakota': 16,
+                    'Tennessee': 64,
+                    'Texas': 228,
+                    'Utah': 29,
+                    'Vermont': 16,
+                    'Virgin Islands': 7,
+                    'Virginia': 99,
+                    'Washington': 89,
+                    'West Virginia': 28,
+                    'Wisconsin': 84,
+                    'Wyoming': 14}
+
+try:
+    df = pd.read_excel(r'G:\Gustavo Amarante\fivethirtyeight\primarydata.xlsx', index_col=0)
+except FileNotFoundError:
+    df = pd.DataFrame(columns=['datetime', 'state', 'candidate', 'delegates', 'contest date'])
+
+for i in tqdm(soup.find_all(class_='sidebar-state')):
+    state_name = i.find('a').contents[0]
+
+    for cand in candidates:
+        try:
+            delegates = float(i.find(id='state-candidate-' + cand).find(class_='state-candidate-delegates').contents[0])
+        except AttributeError:
+            delegates = 0
+
+        df = df.append({'datetime': today,
+                        'state': state_name,
+                        'candidate': cand,
+                        'delegates': delegates,
+                        'contest date': pd.to_datetime(contest_date[state_name])},
+                       ignore_index=True)
+
+writer = pd.ExcelWriter('G:/Gustavo Amarante/fivethirtyeight/primarydata.xlsx')
+df.to_excel(writer, 'primary')
+writer.save()
