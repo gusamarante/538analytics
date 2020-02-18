@@ -1,14 +1,202 @@
 import pandas as pd
+from bwchartbooks import TimeSeries, DataFrame2table
+from tqdm import tqdm
+from matplotlib.backends.backend_pdf import PdfPages
+
+show_charts = True
 
 # get raw data
-df_delegates = pd.read_excel(r'G:\Gustavo Amarante\fivethirtyeight\primarydata.xlsx', index_col=0)
+df_delegates_raw = pd.read_excel(r'G:\Gustavo Amarante\fivethirtyeight\primarydata.xlsx', index_col=0)
 df_polls = pd.read_csv(r'https://projects.fivethirtyeight.com/2020-primary-data/pres_primary_avgs_2020.csv')
+
+# ========================
+# ===== DICTIONARIES =====
+# ========================
+contest_date_dict = {'Alabama': '2020-03-03',
+                     'Alaska': '2020-04-04',
+                     'American Samoa': '2020-03-03',
+                     'Arizona': '2020-03-17',
+                     'Arkansas': '2020-03-03',
+                     'California': '2020-03-03',
+                     'Colorado': '2020-03-03',
+                     'Connecticut': '2020-04-28',
+                     'Delaware': '2020-04-28',
+                     'Democrats Abroad': '2020-03-10',
+                     'District of Columbia': '2020-06-02',
+                     'Florida': '2020-03-17',
+                     'Georgia': '2020-03-24',
+                     'Guam': '2020-05-02',
+                     'Hawaii': '2020-04-04',
+                     'Idaho': '2020-03-10',
+                     'Illinois': '2020-03-17',
+                     'Indiana': '2020-05-05',
+                     'Iowa': '2020-02-03',
+                     'Kansas': '2020-05-02',
+                     'Kentucky': '2020-05-19',
+                     'Louisiana': '2020-04-04',
+                     'Maine': '2020-03-03',
+                     'Maryland': '2020-04-28',
+                     'Massachusetts': '2020-03-03',
+                     'Michigan': '2020-03-10',
+                     'Minnesota': '2020-03-03',
+                     'Mississippi': '2020-03-10',
+                     'Missouri': '2020-03-10',
+                     'Montana': '2020-06-02',
+                     'Nebraska': '2020-05-12',
+                     'Nevada': '2020-02-22',
+                     'New Hampshire': '2020-02-11',
+                     'New Jersey': '2020-06-02',
+                     'New Mexico': '2020-06-02',
+                     'New York': '2020-04-28',
+                     'North Carolina': '2020-03-03',
+                     'North Dakota': '2020-03-10',
+                     'Northern Marianas': '2020-04-14',
+                     'Ohio': '2020-03-17',
+                     'Oklahoma': '2020-03-03',
+                     'Oregon': '2020-05-19',
+                     'Pennsylvania': '2020-04-28',
+                     'Puerto Rico': '2020-03-29',
+                     'Rhode Island': '2020-04-28',
+                     'South Carolina': '2020-02-29',
+                     'South Dakota': '2020-06-02',
+                     'Tennessee': '2020-03-03',
+                     'Texas': '2020-03-03',
+                     'Utah': '2020-03-03',
+                     'Vermont': '2020-03-03',
+                     'Virgin Islands': '2020-06-06',
+                     'Virginia': '2020-03-03',
+                     'Washington': '2020-03-10',
+                     'West Virginia': '2020-05-12',
+                     'Wisconsin': '2020-04-07',
+                     'Wyoming': '2020-04-04'}
+
+delegates_number = {'Alabama': 52,
+                    'Alaska': 15,
+                    'American Samoa': 6,
+                    'Arizona': 67,
+                    'Arkansas': 31,
+                    'California': 415,
+                    'Colorado': 67,
+                    'Connecticut': 60,
+                    'Delaware': 21,
+                    'Democrats Abroad': 13,
+                    'District of Columbia': 20,
+                    'Florida': 219,
+                    'Georgia': 105,
+                    'Guam': 7,
+                    'Hawaii': 24,
+                    'Idaho': 20,
+                    'Illinois': 155,
+                    'Indiana': 82,
+                    'Iowa': 41,
+                    'Kansas': 39,
+                    'Kentucky': 54,
+                    'Louisiana': 54,
+                    'Maine': 24,
+                    'Maryland': 96,
+                    'Massachusetts': 91,
+                    'Michigan': 125,
+                    'Minnesota': 75,
+                    'Mississippi': 36,
+                    'Missouri': 68,
+                    'Montana': 19,
+                    'Nebraska': 29,
+                    'Nevada': 36,
+                    'New Hampshire': 24,
+                    'New Jersey': 126,
+                    'New Mexico': 34,
+                    'New York': 274,
+                    'North Carolina': 110,
+                    'North Dakota': 14,
+                    'Northern Marianas': 6,
+                    'Ohio': 136,
+                    'Oklahoma': 37,
+                    'Oregon': 61,
+                    'Pennsylvania': 186,
+                    'Puerto Rico': 51,
+                    'Rhode Island': 26,
+                    'South Carolina': 54,
+                    'South Dakota': 16,
+                    'Tennessee': 64,
+                    'Texas': 228,
+                    'Utah': 29,
+                    'Vermont': 16,
+                    'Virgin Islands': 7,
+                    'Virginia': 99,
+                    'Washington': 89,
+                    'West Virginia': 28,
+                    'Wisconsin': 84,
+                    'Wyoming': 14}
+
+writer = pd.ExcelWriter(r'G:\Gustavo Amarante\fivethirtyeight\outputs.xlsx')
 
 # =====================
 # ===== DELEGATES =====
 # =====================
-df_delegates = pd.pivot_table(df_delegates, 'delegates', ['datetime', 'state'], 'candidate')
-df_delegates = df_delegates.unstack(level=1).resample('D').last().stack(level=-1)
+
+# last_date = df_delegates_raw['datetime'].max()
+#
+# with PdfPages(r'G:\Macro\US\Election 2020\Charts\538 delegates.pdf') as pdf:
+#
+#     # Table - Delegates by contest date and cumulative
+#     df_aux = df_delegates_raw[df_delegates_raw['datetime'] == last_date]
+#     df_aux = pd.pivot_table(df_aux, 'delegates', 'contest date', 'candidate', 'sum')
+#     fig = DataFrame2table(df_aux.round(0).copy(),
+#                           title='Estimated delegates by date (538 estimates)')
+#     pdf.savefig(fig)
+#
+#     df_aux = df_delegates_raw[df_delegates_raw['datetime'] == last_date]
+#     df_aux = pd.pivot_table(df_aux, 'delegates', 'contest date', 'candidate', 'sum')
+#     df_aux = df_aux.expanding().sum().round(0)
+#     fig = DataFrame2table(df_aux.copy(),
+#                           title='Estimated cumulative delegates by date (538 estimates)')
+#     pdf.savefig(fig)
+#
+#     df_aux = df_aux.resample('D').last().fillna(method='ffill')
+#
+#     fig = TimeSeries(df_aux, title='Cumulative number of delegates',
+#                      date_format='%b',
+#                      x_major_ticks='month',
+#                      legend='upper left')
+#     pdf.savefig(fig)
+#
+#     # Tables - States open by date range
+#     df_aux = df_delegates_raw[df_delegates_raw['datetime'] == last_date]
+#     df_aux = pd.pivot_table(df_aux, 'delegates', ['contest date', 'state'], 'candidate')
+#
+#     date_ranges = [(None, '2020-02-29', '538 Before Super Tuesday'),
+#                    ('2020-03-03', '2020-03-03', '538 Super Tuesday'),
+#                    ('2020-03-10', '2020-03-29', '538 March - after super tuesday'),
+#                    ('2020-04-04', '2020-04-28', '538 April'),
+#                    ('2020-05-02', '2020-06-06', '538 May and June')]
+#
+#
+#     for start, end, title in date_ranges:
+#         df_for = df_aux.loc[start:end].droplevel(0)
+#         df_for.loc['TOTAL'] = df_for.sum()
+#         df_for = df_for.round(1)
+#         df_for.to_excel(writer, title)
+#
+#         fig = DataFrame2table(df_for.copy().round(0), title=title)
+#         pdf.savefig(fig)
+#
+#     # Chart - Times series of delegates for all candidates, by country
+#     for state in tqdm(df_delegates_raw['state'].unique(), '538 number of delegates'):
+#         contest_date = contest_date_dict[state]
+#
+#         cond1 = df_delegates_raw['state'] == state
+#         df_aux = df_delegates_raw[cond1]
+#
+#         df_aux = pd.pivot_table(df_aux, 'delegates', 'datetime', 'candidate')
+#         df_aux = df_aux.resample('D').last().fillna(method='ffill')
+#
+#         fig = TimeSeries(df_aux,
+#                          title='Estimated number of delegates in ' + state + ' (' + contest_date + ')',
+#                          date_format='%d-%b',
+#                          legend='upper left')
+#
+#         pdf.savefig(fig)
+
 
 # =================
 # ===== POLLS =====
@@ -30,7 +218,81 @@ df_polls['modeldate'] = pd.to_datetime(df_polls['modeldate'])
 df_polls['contestdate'] = pd.to_datetime(df_polls['contestdate'])
 df_polls['candidate_name'] = df_polls['candidate_name'].replace(candidates)
 
-# df_polls = pd.pivot_table(df_polls, 'pct_estimate', ['modeldate', 'state'], 'candidate_name')
-df_polls = pd.pivot_table(df_polls, 'pct_trend_adjusted', ['modeldate', 'state'], 'candidate_name')
+# Start
+df_national = pd.pivot_table(df_polls[df_polls['state'] == 'National'], 'pct_estimate', 'modeldate', 'candidate_name')
 
-df_polls = df_polls.unstack(level=1).resample('D').last().stack(level=-1)
+df_model = pd.pivot_table(df_polls, 'pct_trend_adjusted', ['modeldate', 'state'], 'candidate_name')
+df_model = df_model.reindex(pd.MultiIndex.from_product([df_polls['modeldate'].unique(), delegates_number.keys()],
+                                                       names=['date', 'state']))
+df_model = df_model.sort_index().astype(float)
+df_del = pd.DataFrame(index=df_model.index, columns=df_model.columns)
+
+for date in tqdm(df_model.index.get_level_values(0).unique(), 'filling poll dates'):
+    df_model.loc[date].fillna(df_national.loc[date], inplace=True)
+
+s_n_delegates = pd.Series(data=delegates_number, name='delegates number')
+today = pd.to_datetime('today')
+
+for date in tqdm(df_model.index.get_level_values(0).unique(), 'Generating number of delegates'):
+    df_aux = df_model.loc[date]
+    df_aux = df_aux * (df_aux >= 15)
+    df_aux = df_aux.div(df_aux.sum(axis=1), axis=0)
+    df_aux = df_aux.multiply(s_n_delegates, axis=0)
+    df_aux = df_aux.astype(float).round(0)
+
+    df_done = pd.pivot_table(df_delegates_raw[(df_delegates_raw['contest date'] <= date)],
+                             'delegates', 'state', 'candidate')
+
+    if not df_done.empty:
+        for state in df_done.index:
+            df_aux.loc[state] = df_done.loc[state]
+
+    df_del.loc[date][:] = df_aux
+
+TimeSeries(df_del.groupby('date').sum(), start_date='2020-01-01',
+           title='Number of delegates with current polls', show_chart=True,
+           date_format='%d-%b')
+
+df_del.groupby('date').sum().to_clipboard()
+
+a = 1
+
+# df_polls_adj = pd.DataFrame(index=list(delegates_number.keys()), columns=list(candidates.values()))
+#
+# for state in tqdm(delegates_number.keys(), 'Processing Polls'):
+#     for cand in candidates.values():
+#
+#         try:
+#             cond01 = df_polls['state'] == state
+#             cond02 = df_polls['candidate_name'] == cand
+#             df_aux = df_polls[cond01 & cond02].sort_values('modeldate')
+#             pct = df_aux['pct_trend_adjusted'].iloc[-1]
+#
+#         except IndexError:
+#             cond01 = df_polls['state'] == 'National'
+#             cond02 = df_polls['candidate_name'] == cand
+#             df_aux = df_polls[cond01 & cond02].sort_values('modeldate')
+#             pct = df_aux['pct_estimate'].iloc[-1]
+#
+#         df_polls_adj.loc[state, cand] = pct
+#
+# df_polls_adj = df_polls_adj * (df_polls_adj >= 15)
+# df_polls_adj = df_polls_adj.div(df_polls_adj.sum(axis=1), axis=0)
+# s_n_delegates = pd.Series(data=delegates_number, name='delegates number')
+# df_polls_adj = df_polls_adj.multiply(s_n_delegates, axis=0)
+# df_polls_adj = df_polls_adj.astype(float).round(0)
+# today = pd.to_datetime('today')
+#
+# df_aux = pd.pivot_table(df_delegates_raw[df_delegates_raw['datetime'] == df_delegates_raw['datetime'].max()],
+#                         'delegates', ['contest date', 'state'], 'candidate')
+# df_aux = df_aux[df_aux.index.get_level_values(0) < today].droplevel(0)
+#
+# for state in df_aux.index:
+#     df_polls_adj.loc[state] = df_aux.loc[state]
+#
+# df_polls_adj.to_excel(writer, 'BW Model')
+#
+# writer.save()
+
+
+
